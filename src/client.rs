@@ -3,14 +3,11 @@
 use ppc::user_service_client::UserServiceClient;
 use ppc::{QueryResponse, QueryRequest, InsertResponse, InsertRequest, DeleteRequest, DeleteResponse, UpdateRequest, UpdateResponse};
 
-use tonic::{Status, Response, client};
+use tonic::{Status, Response};
 use tonic::transport::Channel;
 
 use std::collections::HashMap;
-use std::env;
-use std::fmt::format;
-use std::time::Instant;
-use std::io::{self, BufRead};
+use std::io::{self};
 
 pub mod ppc {
     tonic::include_proto!("myapp");
@@ -20,7 +17,7 @@ pub mod ppc {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut client_calls = ClientCalls::new().await?;
 
-    // Loop until app_running is false
+    // Loop until quit
     loop {
         // Read the command from stdin.
         let mut command = String::new();
@@ -58,6 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     continue;
                 }
                
+                // let s: String = data.get("username").expect("msg").to_string();
                 let user_id = force_get(&data, "id", "ID must be passed to UPDATE", None);
                 let mut cc = client_calls.clone();
                 let query_response = cc.query_call(user_id).await?;
