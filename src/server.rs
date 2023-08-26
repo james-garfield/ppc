@@ -36,11 +36,12 @@ impl User {
             None => -1,
         }
     }
-
 }
 
 #[derive(Debug, Default)]
-pub struct MyUserService {}
+pub struct MyUserService {
+    // db: mysql::Pool
+}
 
 #[tonic::async_trait]
 impl UserService for MyUserService {
@@ -92,12 +93,12 @@ impl UserService for MyUserService {
 
         Ok(Response::new(reply))
     }
-    
+
 }
 
 /// Select user
 fn select_user(search_value: &str) -> Vec<User> {
-    let pool = Pool::new(mysql::Opts::from_url("mysql://root:root@localhost/ppc").expect("No pool")).expect("No pool");
+    let pool: Pool = Pool::new(mysql::Opts::from_url("mysql://root:root@localhost/ppc").expect("No pool")).expect("No pool");
 
     // DB Connection
     let mut conn = pool.get_conn().expect("Pool not working");
@@ -194,10 +195,10 @@ fn delete_user(id: i32) -> bool {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "[::1]:50051".parse()?;
-    let greeter = MyUserService::default();
+    let user_service = MyUserService::default();
 
     Server::builder()
-        .add_service(UserServiceServer::new(greeter))
+        .add_service(UserServiceServer::new(user_service))
         .serve(addr)
         .await?;
 
