@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package myapp;
+
+service UserService {
+    rpc Query(QueryRequest) returns (QueryResponse);
+    rpc Update(UpdateRequest) returns (UpdateResponse);
+    rpc Insert(InsertRequest) returns (InsertResponse);
+    rpc Delete(DeleteRequest) returns (DeleteResponse);
+}
+
+message QueryRequest {
+    string search = 1;
+}
+
+message QueryResponse {
+    string id = 1;
+    string username = 2;
+    string email = 3;
+    string password = 4;
+}
+
+message UpdateRequest {
+    string username = 1;
+    string email = 2;
+    string password = 3;
+    string id = 4;
+}
+
+message UpdateResponse {
+    string id = 1;
+}
+
+message InsertRequest {
+    string username = 1;
+    string email = 2;
+    string password = 3;
+}
+
+message InsertResponse {
+    string id = 1;
+}
+
+message DeleteRequest {
+    string id = 1;
+}
+
+message DeleteResponse {
+    bool success = 1;
+}
