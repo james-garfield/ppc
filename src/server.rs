@@ -1,12 +1,16 @@
+#![allow(dead_code)]
+
 use tonic::{transport::Server, Request, Response, Status};
 
 use mysql::prelude::*;
 use mysql::*;
 
-use ppc::ppc::user_service_server::{UserService, UserServiceServer};
-use ppc::ppc::{QueryRequest, QueryResponse, UpdateRequest, UpdateResponse, InsertRequest, InsertResponse, DeleteRequest, DeleteResponse};
+use ppc::user_service_server::{UserService, UserServiceServer};
+use ppc::{QueryRequest, QueryResponse, UpdateRequest, UpdateResponse, InsertRequest, InsertResponse, DeleteRequest, DeleteResponse};
 
-use crate::ppc;
+pub mod ppc {
+    tonic::include_proto!("myapp"); // The string specified here must match the proto package name
+}
 
 #[derive(Clone, Debug)]
 struct User {
@@ -45,7 +49,7 @@ impl UserService for MyUserService {
 
         let binding = select_user(request.into_inner().search.as_str());
         let user = binding.first().expect("No user");
-        let reply = ppc::ppc::QueryResponse {
+        let reply = ppc::QueryResponse {
             id: user.some_id().to_string(),
             username: user.username.to_string(), 
             email: user.email.to_string(),
@@ -60,7 +64,7 @@ impl UserService for MyUserService {
         
         let user = request.into_inner();
         let user = update_user(user.username.as_str(), user.email.as_str(), user.password.as_str(), user.id.parse::<i32>().expect("Not parsed"));
-        let reply = ppc::ppc::UpdateResponse {
+        let reply = ppc::UpdateResponse {
             id: user.some_id().to_string()
         };
 
@@ -71,7 +75,7 @@ impl UserService for MyUserService {
         
         let user = request.into_inner();
         let user = insert_user(user.username.as_str(), user.email.as_str(), user.password.as_str());
-        let reply = ppc::ppc::InsertResponse {
+        let reply = ppc::InsertResponse {
             id: user.some_id().to_string()
         };
 
@@ -82,7 +86,7 @@ impl UserService for MyUserService {
         
         let user_id = request.into_inner();
         let deleted = delete_user(user_id.id.parse::<i32>().expect("Not parsed"));
-        let reply = ppc::ppc::DeleteResponse {
+        let reply = ppc::DeleteResponse {
             success: deleted
         };
 
@@ -106,10 +110,15 @@ fn select_user(search_value: &str) -> Vec<User> {
     let users_res = conn.query_map(query, |(id, username, email, password)| {
         User {id: Some(id), username, email, password}
     });
+
     // let user_res = conn.query(query);
     let users = match users_res {
         Ok(data) => {
-            data
+            if data.len() > 0 {
+                data
+            } else {
+                vec![User::new_empty_user()]
+            }
         }
         Err(_er) => {
             vec![User::new_empty_user()]
@@ -182,27 +191,16 @@ fn delete_user(id: i32) -> bool {
 }
 
 
-pub async fn run_server() -> Result<(), Box<dyn std::error::Error>> {
-    let addr = "[::1]:50051".parse()?;
-    let user_service = MyUserService::default();
-
-    Server::builder()
-        .add_service(UserServiceServer::new(user_service))
-        .serve(addr)
-        .await?;
-
-    Ok(())
-}
-
 #[tokio::main]
-pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "[::1]:50051".parse()?;
-    let user_service = MyUserService::default();
+    let greeter = MyUserService::default();
 
     Server::builder()
-        .add_service(UserServiceServer::new(user_service))
+        .add_service(UserServiceServer::new(greeter))
         .serve(addr)
         .await?;
 
     Ok(())
 }
+

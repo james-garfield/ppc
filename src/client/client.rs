@@ -1,16 +1,16 @@
-use ppc::user_service_client::UserServiceClient;
-use tonic::Status;
+use tonic::{Status, Response};
 use tonic::transport::Channel;
 use std::time::Instant;
 
-use crate::server::server::ppc::{QueryResponse, QueryRequest InsertResponse, InsertRequest, DeleteRequest, DeleteResponse, UpdateRequest, UpdateResponse};
+use ppc::ppc::user_service_client::UserServiceClient;
+use ppc::ppc::{QueryResponse, QueryRequest, InsertResponse, InsertRequest, DeleteRequest, DeleteResponse, UpdateRequest, UpdateResponse};
 
-pub mod ppc {
-    tonic::include_proto!("myapp");
-}
+// use crate::server::server::ppc::{QueryResponse, QueryRequest InsertResponse, InsertRequest, DeleteRequest, DeleteResponse, UpdateRequest, UpdateResponse};
+
+use crate::ppc;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn _main() -> Result<(), Box<dyn std::error::Error>> {
     let client = UserServiceClient::connect("http://[::1]:50051").await?;
 
     // Demoing multiple requests
@@ -58,31 +58,41 @@ impl ClientCalls {
         Ok(client)
     }
 
-    pub async fn query_call(&self, search: String) -> Result<QueryResponse, Status>  {
+    pub async fn query_call(&mut self, search: String) -> Result<Response<QueryResponse>, Status>  {
         let request = tonic::Request::new(QueryRequest {
             search: search
         });
         let response = self.client.query(request).await?;
-        response
+        Ok(response)
     }
 
-    pub async fn insert_call(&self, username: String, email: String, password: String) -> Result<InsertResponse, Status> {
+    pub async fn insert_call(&mut self, username: String, email: String, password: String) -> Result<Response<InsertResponse>, Status> {
         let request = tonic::Request::new(InsertRequest {
             username,
             email,
             password
         });
         let response = self.client.insert(request).await?;
-        response
+        Ok(response)
     }
-    // message InsertRequest {
-    //     string username = 1;
-    //     string email = 2;
-    //     string password = 3;
-    // }
-    
-    // message InsertResponse {
-    //     string id = 1;
-    // }
-    
+
+    pub async fn update_call(&mut self, username: String, email: String, password: String, id: i32) -> Result<Response<UpdateResponse>, Status> {
+        let request = tonic::Request::new(UpdateRequest {
+            username,
+            email,
+            password,
+            id: id.to_string()
+        });
+        let response = self.client.update(request).await?;
+        Ok(response)
+    }
+
+    pub async fn delete_call(&mut self, id: i32) -> Result<Response<DeleteResponse>, Status> {
+        let request = tonic::Request::new(DeleteRequest {
+            id: id.to_string()
+        });
+        let response = self.client.delete(request).await?;
+        Ok(response)
+    }
+            
 }
