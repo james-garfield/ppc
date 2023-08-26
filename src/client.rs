@@ -95,7 +95,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     force_get(&data, "search", "QUERY search", None)
                 ).await?;
                 println!("{:?}", res);
-            }
+            },
             _ => {
                 println!("Unknown command: {}", command);
             }
