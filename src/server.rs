@@ -4,6 +4,9 @@ use tonic::{transport::Server, Request, Response, Status};
 
 use mysql::prelude::*;
 use mysql::*;
+use mysql::{Opts, OptsBuilder};
+
+use std::io;
 
 use ppc::user_service_server::{UserService, UserServiceServer};
 use ppc::{QueryRequest, QueryResponse, UpdateRequest, UpdateResponse, InsertRequest, InsertResponse, DeleteRequest, DeleteResponse};
@@ -38,9 +41,9 @@ impl User {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct MyUserService {
-    // db: mysql::Pool
+    pool: mysql::Pool
 }
 
 #[tonic::async_trait]
@@ -48,7 +51,7 @@ impl UserService for MyUserService {
     async fn query(&self, request: Request<QueryRequest>) -> Result<Response<QueryResponse>, Status> {
         println!("Got a request: {:?}", request);
 
-        let binding = select_user(request.into_inner().search.as_str());
+        let binding = select_user(&self.pool, request.into_inner().search.as_str());
         let user = binding.first().expect("No user");
         let reply = ppc::QueryResponse {
             id: user.some_id().to_string(),
@@ -64,7 +67,7 @@ impl UserService for MyUserService {
         println!("Got a request: {:?}", request);
         
         let user = request.into_inner();
-        let user = update_user(user.username.as_str(), user.email.as_str(), user.password.as_str(), user.id.parse::<i32>().expect("Not parsed"));
+        let user = update_user(&self.pool, user.username.as_str(), user.email.as_str(), user.password.as_str(), user.id.parse::<i32>().expect("Not parsed"));
         let reply = ppc::UpdateResponse {
             id: user.some_id().to_string()
         };
@@ -75,7 +78,7 @@ impl UserService for MyUserService {
         println!("Got a request: {:?}", request);
         
         let user = request.into_inner();
-        let user = insert_user(user.username.as_str(), user.email.as_str(), user.password.as_str());
+        let user = insert_user(&self.pool, user.username.as_str(), user.email.as_str(), user.password.as_str());
         let reply = ppc::InsertResponse {
             id: user.some_id().to_string()
         };
@@ -86,7 +89,7 @@ impl UserService for MyUserService {
         println!("Got a request: {:?}", request);
         
         let user_id = request.into_inner();
-        let deleted = delete_user(user_id.id.parse::<i32>().expect("Not parsed"));
+        let deleted = delete_user(&self.pool, user_id.id.parse::<i32>().expect("Not parsed"));
         let reply = ppc::DeleteResponse {
             success: deleted
         };
@@ -97,9 +100,7 @@ impl UserService for MyUserService {
 }
 
 /// Select user
-fn select_user(search_value: &str) -> Vec<User> {
-    let pool: Pool = Pool::new(mysql::Opts::from_url("mysql://root:root@localhost/ppc").expect("No pool")).expect("No pool");
-
+fn select_user(pool: &mysql::Pool, search_value: &str) -> Vec<User> {
     // DB Connection
     let mut conn = pool.get_conn().expect("Pool not working");
 
@@ -129,9 +130,7 @@ fn select_user(search_value: &str) -> Vec<User> {
     users
 }
 /// Create a new user
-fn insert_user(username: &str, email: &str, password: &str) -> User {
-    let pool = Pool::new(mysql::Opts::from_url("mysql://root:root@localhost/ppc").expect("No pool")).expect("No pool");
-
+fn insert_user(pool: &mysql::Pool, username: &str, email: &str, password: &str) -> User {
     // DB Connection
     let mut conn = pool.get_conn().expect("Pool not working");
 
@@ -153,9 +152,7 @@ fn insert_user(username: &str, email: &str, password: &str) -> User {
 }
 
 /// Update users
-fn update_user(username: &str, email: &str, password: &str, id: i32) -> User {
-    let pool = Pool::new(mysql::Opts::from_url("mysql://root:root@localhost/ppc").expect("No pool")).expect("No pool");
-
+fn update_user(pool: &mysql::Pool, username: &str, email: &str, password: &str, id: i32) -> User {
     // DB Connection
     let mut conn = pool.get_conn().expect("Pool not working");
 
@@ -167,7 +164,7 @@ fn update_user(username: &str, email: &str, password: &str, id: i32) -> User {
     });
 
     let user_id = conn.last_insert_id();
-    let users = select_user( user_id.to_string().as_str());
+    let users = select_user(pool, user_id.to_string().as_str());
     match users.first() {
         Some(data) => data.clone(),
         None => User::new_empty_user(),
@@ -175,9 +172,7 @@ fn update_user(username: &str, email: &str, password: &str, id: i32) -> User {
 }
 
 /// Delete user
-fn delete_user(id: i32) -> bool {
-    let pool = Pool::new(mysql::Opts::from_url("mysql://root:root@localhost/ppc").expect("No pool")).expect("No pool");
-
+fn delete_user(pool: &mysql::Pool, id: i32) -> bool {
     // DB Connection
     let mut conn = pool.get_conn().expect("Pool not working");
 
@@ -195,7 +190,8 @@ fn delete_user(id: i32) -> bool {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = "[::1]:50051".parse()?;
-    let user_service = MyUserService::default();
+    let pool: Pool = Pool::new(mysql::Opts::from_url("mysql://root:root@localhost/ppc").expect("No pool")).expect("No pool");
+    let user_service = MyUserService { pool };
 
     Server::builder()
         .add_service(UserServiceServer::new(user_service))
