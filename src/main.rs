@@ -45,7 +45,7 @@ async fn run_stuff(requests: i32) {
 
             let i = client.insert_call("john".to_string(), "john@doe.com".to_string(), "JohnsPassword".to_string()).await;
             let res = i.expect("Exepct insert").into_inner();
-            let u = client.update_call("jordan".to_string(), "email".to_string(), "pass".to_string(), res.id.parse::<i32>().expect(""));
+            let u = client.update_call("jordan".to_string(), "email".to_string(), "pass".to_string(), res.id.parse::<i32>().expect("")).await;
         });
         handles.push(handle);
     }
