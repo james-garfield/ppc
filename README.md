@@ -6,11 +6,7 @@
   - [Table of Contents](#table-of-contents)
   - [Description](#description)
   - [Installation](#installation)
-  - [Usage](#usage)
-  - [Configuration](#configuration)
-  - [Contributing](#contributing)
-  - [License](#license)
-  - [Acknowledgments](#acknowledgments)
+  - [Requirements](#requirements)
 
 ## Description
 A simple gRPC server and client written in Rust.
