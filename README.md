@@ -5,7 +5,6 @@
 - [ppc](#project-name)
   - [Table of Contents](#table-of-contents)
   - [Description](#description)
-  - [Installation](#installation)
   - [Requirements](#requirements)
 
 ## Description
